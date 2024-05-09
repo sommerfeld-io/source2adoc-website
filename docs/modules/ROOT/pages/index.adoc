@@ -1,0 +1,23 @@
+= source2adoc-website
+Sebastian Sommerfeld <sebastian@sommerfeld.io>
+:github-org: sommerfeld-io
+:project-name: source2adoc-website
+:url-project: https://github.com/{github-org}/{project-name}
+:github-actions-url: {url-project}/actions/workflows
+:job: pipeline.yml
+:badge: badge.svg
+
+link:https://source2adoc.sommerfeld.io[Documentation website] for the link:https://github.com/sommerfeld-io/source2adoc[source2adoc project].
+
+image:{github-actions-url}/{job}/{badge}[Github Badge, link={github-actions-url}/{job}]
+
+* Documentation Website -> https://source2adoc.sommerfeld.io
+* Github Repository -> {url-project}
+* DockerHub -> https://hub.docker.com/r/sommerfeldio/{project-name}
+* Where to file issues -> {url-project}/issues
+
+== Risks and Technical Debts
+link:{url-project}/issues?q=is%3Aissue+label%3Asecurity%2Crisk+is%3Aopen[All issues labeled as risk (= some sort of risk or a technical debt) or security (= related to security issues)] are tracked as Github issue and carry the respective label.
+
+== Contact
+Feel free to contact me via sebastian@sommerfeld.io.
