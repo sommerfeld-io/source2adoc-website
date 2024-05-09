@@ -1,0 +1,317 @@
+---
+# @file pipeline.yml
+# @brief Deployment pipeline for the source2docs-website.
+#
+# @description The deployment pipeline for the source2docs-website is implemented using GitHub
+# Actions. The primary objective of this pipeline is to assess the releasability of the application
+# for deployment with every push to the ``main`` branch. This is achieved through a series of
+# automated tests and validations (performed on all branches, but the ``main`` branch carries the
+# code thatshould be stable and production-ready). The workflow is designed to build every artifact
+# of the source2docs-website and subject it to various types of tests to verify its functionality
+# and integrity. If all tests are successful, indicating that the project is ready for release, a
+# release candidate is generated and published to DockerHub.
+#
+# The deployment process for the source2docs-website utilizes Docker images. Images are built and
+# unit tested. Each Snapshot image is tagged with the commit-sha, providing a clear reference to
+# the version of the codebase from which it was generated, and subsequently pushed to DockerHub.
+# Following this initial deployment, the Snapshot Docker images undergo further testing (security,
+# performance, acceptance, etc.) to assess their performance and stability. If these additional
+# tests pass successfully (and the workflow is running on the ``main`` branch), indicating that the
+# Snapshot image is robust and reliable, it is then tagged as a release candidate. Notably, release
+# candidates are exclusively published from the ``main`` branch.
+
+
+name: Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches-ignore:
+      - dependabot/**
+
+env:
+  IMAGE_TAG_RC: rc
+  IMAGE_TAG_LATEST: latest
+
+permissions:
+  contents: read
+
+jobs:
+
+  # ----- Commit stage - 1 - lint ---------------
+
+  lint-yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run yamllint
+        run: docker-compose --file docker-compose-lint.yml up yaml
+        shell: bash
+
+  lint-folders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run folderslint in container
+        run: docker-compose --file docker-compose-lint.yml up folders
+        shell: bash
+
+  lint-filenames:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run ls-lint in container
+        run: docker-compose --file docker-compose-lint.yml up filenames
+        shell: bash
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          ignore_paths: node_modules target
+
+  # ----- Commit stage - 2 ----------------------
+
+  # todo ... maybe ??? this might be obsolete because this is (for the moment) just a config repo
+  # todo ... think about a dark ui bundle
+
+  # ----- Commit stage (docs) -------------------
+
+  update-versions:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.yml-file }}
+    if: ${{ (github.actor != 'dependabot[bot]') }}
+    needs: [
+      'lint-yaml',
+      'lint-folders',
+      'lint-filenames',
+      'shellcheck',
+    ]
+    strategy:
+      matrix:
+        yml-file: ['docs/antora.yml']
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{github.ref}}
+      - name: Print Branchname
+        run: echo ${{github.ref}}
+        shell: bash
+      - name: Adjust version in ${{ matrix.yml-file }}
+        uses: sebastian-sommerfeld-io/github-action-update-antora-yml@main
+        with:
+          git_ref: ${{github.ref}}
+          file: ${{ matrix.yml-file }}
+      - name: Run yamllint for ${{ matrix.yml-file }}
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: ${{ matrix.yml-file }}
+      - name: Commit and push
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: sebastian
+          author_email: sebastian@sommerfeld.io
+          message: "[Actions Bot] update antora yml"
+
+  generate-docs:
+    runs-on: ubuntu-latest
+    if: ${{ (github.actor != 'dependabot[bot]') }}
+    needs: ['update-versions']
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{github.ref}}
+      - name: Generate docs from source code
+        # TODO ... replace rather quickly !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        run: docker run --rm --volume "$(pwd):/project" --workdir "/project" sommerfeldio/source2docs:rc docs
+        shell: bash
+      - name: README.adoc
+        run: |
+          TARGET_ADOC="README.adoc"
+          cp docs/modules/ROOT/pages/index.adoc "$TARGET_ADOC"
+          {
+            echo
+            echo "// +-------------------------------------------+"
+            echo "// |                                           |"
+            echo "// |    DO NOT EDIT DIRECTLY !!!!!             |"
+            echo "// |                                           |"
+            echo "// |    File is auto-generated by pipeline.    |"
+            echo "// |    Contents are based on Antora docs.     |"
+            echo "// |                                           |"
+            echo "// +-------------------------------------------+"
+          } >> "$TARGET_ADOC"
+        shell: bash
+      - name: LICENSE.adoc
+        run: |
+          TARGET_ADOC="LICENSE.adoc"
+          cp docs/modules/ROOT/pages/license.adoc "$TARGET_ADOC"
+          {
+            echo
+            echo "// +-------------------------------------------+"
+            echo "// |                                           |"
+            echo "// |    DO NOT EDIT DIRECTLY !!!!!             |"
+            echo "// |                                           |"
+            echo "// |    File is auto-generated by pipeline.    |"
+            echo "// |    Contents are based on Antora docs.     |"
+            echo "// |                                           |"
+            echo "// +-------------------------------------------+"
+          } >> "$TARGET_ADOC"
+        shell: bash
+      - name: Commit and push
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: sebastian
+          author_email: sebastian@sommerfeld.io
+          message: "[Actions Bot] generate docs"
+
+  # ----- Commit stage (build) ------------------
+
+  build-images:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.image-name }}:${{ github.sha }}
+    needs: ['generate-docs']
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+    strategy:
+      matrix:
+        include:
+          - registry: docker.io
+            image-name: source2adoc-website
+            context: .
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.context }}/Dockerfile
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Container Registry ${{ matrix.registry }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ matrix.registry }}
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5.5.1
+        with:
+          images: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+      - name: Build the Docker image and push to ${{ matrix.registry }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+      - name: Docker Scout CVEs for :${{ github.sha }}
+        uses: docker/scout-action@v1.8.0
+        with:
+          command: cves
+          image: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ github.sha }}
+          exit-code: false
+          write-comment: ${{ github.event_name == 'pull_request' }}
+      # - name: Docker Scout Compare :${{ github.sha }} to :${{ env.IMAGE_TAG_RC }}"
+      #   uses: docker/scout-action@v1.8.0
+      #   with:
+      #     command: compare
+      #     image: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ github.sha }}
+      #     to: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_RC }}
+      #     exit-code: false
+      #     write-comment: ${{ github.event_name == 'pull_request' }}
+
+  # ----- Test stage ----------------------------
+
+  # todo ...
+
+  # ----- Deploy :rc stage ----------------------
+
+  publish-rc:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.image-name }} as release candidate
+    needs: ['build-images']
+    if: ${{ (github.actor != 'dependabot[bot]') && (github.ref == 'refs/heads/main') }}
+    permissions: # see build-images (duplicated because github actions does not support anchors)
+      contents: read
+      pull-requests: write
+      security-events: write
+    strategy: # see build-images (duplicated because github actions does not support anchors)
+      matrix:
+        include:
+          - registry: docker.io
+            image-name: source2adoc-website
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Login to Container Registry ${{ matrix.registry }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ matrix.registry }}
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Re-tag image as release candicate (:${{ env.IMAGE_TAG_RC }}) and deploy to ${{ matrix.registry }}
+        run: |
+          SRC_IMAGE="${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ github.sha }}"
+          TARGET_IMAGE="${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_RC }}"
+          docker pull "$SRC_IMAGE"
+          docker tag "$SRC_IMAGE" "$TARGET_IMAGE"
+          docker push "$TARGET_IMAGE"
+        shell: bash
+      # todo ... implement as soon as there is a latest tag on dockerhub
+      # - name: Docker Scout Compare :${{ env.IMAGE_TAG_RC }}" to :${{ env.IMAGE_TAG_LATEST }}
+      #   uses: docker/scout-action@v1.8.0
+      #   with:
+      #     command: compare
+      #     image: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_RC }}
+      #     to: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_LATEST }}
+      #     exit-code: false
+      #     write-comment: ${{ github.event_name == 'pull_request' }}
+
+  # ----- Notifications -------------------------
+
+  # on-failure:
+  #   runs-on: ubuntu-latest
+  #   needs: [
+  #     'update-versions',
+  #     'generate-docs',
+  #     'sonarcloud',
+  #     'lint-yaml',
+  #     'lint-folders',
+  #     'lint-filenames',
+  #     'shellcheck',
+  #     'build-images',
+  #   ]
+  #   if: failure()
+  #   steps:
+  #     - name: Send Pipeline Status to Google Chat
+  #       if: always()
+  #       uses: Co-qn/google-chat-notification@releases/v1
+  #       with:
+  #         name: ${{ github.workflow }}
+  #         url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+  #         status: failure
