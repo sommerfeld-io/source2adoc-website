@@ -1,0 +1,3 @@
+= source2adoc-website
+
+link:https://source2adoc.sommerfeld.io[Documentation website] for the source2adoc project.
