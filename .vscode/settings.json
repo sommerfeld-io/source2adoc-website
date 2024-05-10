@@ -1,3 +1,6 @@
 {
-    "asciidoc.antora.enableAntoraSupport": true
+    "asciidoc.antora.enableAntoraSupport": true,
+    "yaml.schemas": {
+        "https://json.schemastore.org/yamllint.json": "file:///workspaces/source2adoc-website/config/playbooks/source2adoc.yml"
+    }
 }

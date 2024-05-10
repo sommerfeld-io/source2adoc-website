@@ -1,0 +1,60 @@
+{
+    "name": "source2adoc-website",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+
+    "mounts": [
+        {
+            "source": "/etc/timezone",
+            "target": "/etc/timezone",
+            "type": "bind"
+        },
+        {
+            "source": "/etc/localtime",
+            "target": "/etc/localtime",
+            "type": "bind"
+        }
+    ],
+
+    "customizations": {
+		"vscode": {
+			"settings": {},
+			"extensions": [
+                "streetsidesoftware.code-spell-checker",
+                "asciidoctor.asciidoctor-vscode",
+                "ms-azuretools.vscode-docker",
+                "aaron-bond.better-comments",
+                "pomdtr.markdown-kroki",
+                "timonwong.shellcheck",
+                "jebbs.plantuml",
+                "golang.go",
+                "github.vscode-github-actions",
+                "redhat.vscode-yaml",
+                "alexkrechik.cucumberautocomplete",
+                "ms-vscode.makefile-tools",
+                "chef-software.chef"
+            ]
+		}
+	},
+
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2.10.2": {}
+	},
+
+	"postCreateCommand": "pre-commit install",
+	"postStartCommand": "docker compose --file ${containerWorkspaceFolder}/.devcontainer/ops/docker-compose.yml --env-file ${containerWorkspaceFolder}/.devcontainer/ops/.env up -d",
+
+    "forwardPorts": [
+		7880,
+        7990
+    ],
+    "portsAttributes": {
+        "7880": {
+            "label": "website"
+        },
+        "7990": {
+            "label": "portainer"
+        }
+    }
+}

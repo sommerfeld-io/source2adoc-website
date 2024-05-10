@@ -1,0 +1,48 @@
+---
+# @file docker-compose.yml
+# @brief Docker Compose configuration to build and start all Docker containers required for local development.
+#
+# @description This Docker Compose configuration serves the purpose of building and starting all
+# the source2adoc-website in a Docker container to facilitate the local development of the website.
+#
+# | What (Container)    | URL (host-port)       | Info                                        |
+# | ------------------- | --------------------- | ------------------------------------------- |
+# | source2adoc-website | http://localhost:7880 | Antora-generated website with real contents (see xref:AUTO-GENERATED:Dockerfile.adoc[Dockerfile]) |
+# //| Chef InSpec         | -                     | Run Chef InSpec tests against the website container |
+#
+# === Prerequisites
+#
+# This compose config has been developed and tested with Docker version 24.0.2 on top of
+# Ubuntu 23.10.
+#
+# == How to use this compose configuration
+#
+# [source, bash]
+# ```
+# Build and start
+# docker compose build --no-cache
+# docker compose up
+#
+# Stop and remove images and volums
+# docker compose down --rmi=all --volumes --remove-orphans
+# ```
+
+
+version: "3.3"
+services:
+
+  source2adoc-website:
+    container_name: ${COMPOSE_PROJECT_NAME}
+    build: .
+    image: local/${COMPOSE_PROJECT_NAME}:${DEV_TAG}
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - 7880:7880
+    healthcheck:
+      test: "wget --no-verbose --tries=1 --spider http://localhost:7880 || exit 1"
+      interval: 10s
+      timeout: 2s
+      retries: 16
+      start_period: 5s
