@@ -12,7 +12,7 @@
 # essential prerequisites for this development environment. This devcontainer has
 # been tested with Docker version 24.0.2 on top of Ubuntu 22.10.
 
-FROM mcr.microsoft.com/devcontainers/javascript-node:20-bullseye
+FROM mcr.microsoft.com/devcontainers/javascript-node:22-bullseye
 LABEL maintainer="sebastian@sommerfeld.io"
 
 ARG USER=node
