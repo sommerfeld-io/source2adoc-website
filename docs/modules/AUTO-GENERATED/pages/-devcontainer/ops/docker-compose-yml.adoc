@@ -11,6 +11,6 @@ the monitoring and management of all Docker containers inside the DevContainer.
 | Component | Port | URL
 
 | Portainer
-| 7990
-| http://localhost:7990
+| 7991
+| http://localhost:7991
 |===

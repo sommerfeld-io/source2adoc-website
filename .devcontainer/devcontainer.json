@@ -47,13 +47,13 @@
 
     "forwardPorts": [
 		7880,
-        7990
+        7991
     ],
     "portsAttributes": {
         "7880": {
             "label": "website"
         },
-        "7990": {
+        "7991": {
             "label": "portainer"
         }
     }
