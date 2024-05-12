@@ -4,7 +4,7 @@ Run all components needed to allow managing all Docker container inside the DevC
 
 == Overview
 
-This `ops` compose stack run all components needed to allow
+This `ops` compose stack runs all components needed to allow
 the monitoring and management of all Docker containers inside the DevContainer.
 
 |===
