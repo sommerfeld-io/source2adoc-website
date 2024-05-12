@@ -28,12 +28,10 @@
                 "pomdtr.markdown-kroki",
                 "timonwong.shellcheck",
                 "jebbs.plantuml",
-                "golang.go",
                 "github.vscode-github-actions",
                 "redhat.vscode-yaml",
-                "alexkrechik.cucumberautocomplete",
-                "ms-vscode.makefile-tools",
-                "chef-software.chef"
+                "chef-software.chef",
+				"GitHub.copilot"
             ]
 		}
 	},
