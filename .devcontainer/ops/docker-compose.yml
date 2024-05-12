@@ -7,7 +7,7 @@
 #
 # | Component     | Port | URL                   |
 # | ------------- | ---- | --------------------- |
-# | Portainer     | 7990 | http://localhost:7990 |
+# | Portainer     | 7991 | http://localhost:7991 |
 
 version: "3.3"
 services:
@@ -18,7 +18,7 @@ services:
     command: -H unix:///var/run/docker.sock --admin-password-file /tmp/portainer_passwords
     restart: always
     ports:
-      - 7990:9000
+      - 7991:9000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
