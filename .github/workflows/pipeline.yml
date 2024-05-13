@@ -48,7 +48,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run yamllint
-        run: docker-compose --file docker-compose-lint.yml up yaml
+        run: docker-compose up lint-yaml
         shell: bash
 
   lint-folders:
@@ -57,7 +57,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run folderslint in container
-        run: docker-compose --file docker-compose-lint.yml up folders
+        run: docker-compose up lint-folders
         shell: bash
 
   lint-filenames:
@@ -66,7 +66,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run ls-lint in container
-        run: docker-compose --file docker-compose-lint.yml up filenames
+        run: docker-compose up lint-filenames
         shell: bash
 
   shellcheck:

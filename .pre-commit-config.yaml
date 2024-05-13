@@ -28,7 +28,25 @@ repos:
       - id: detect-private-key
   - repo: local
     hooks:
-      - id: lint
-        name: lint
-        entry: bash -c 'docker compose --file docker-compose-lint.yml up'
+      - id: lint-yaml
+        name: lint-yaml
+        entry: bash -c 'docker compose up lint-yaml'
+        language: system
+  - repo: local
+    hooks:
+      - id: lint-folders
+        name: lint-folders
+        entry: bash -c 'docker compose up lint-folders'
+        language: system
+  - repo: local
+    hooks:
+      - id: lint-filenames
+        name: lint-filenames
+        entry: bash -c 'docker compose up lint-filenames'
+        language: system
+  - repo: local
+    hooks:
+      - id: lint-dockerfile
+        name: lint-dockerfile
+        entry: bash -c 'docker compose up lint-dockerfile'
         language: system

@@ -10,6 +10,8 @@
 # | source2adoc-website | http://localhost:7880 | Antora-generated website with real contents (see xref:AUTO-GENERATED:Dockerfile.adoc[Dockerfile]) |
 # //| Chef InSpec         | -                     | Run Chef InSpec tests against the website container |
 #
+# Before starting the website image, the project is linted.
+#
 # === Prerequisites
 #
 # This compose config has been developed and tested with Docker version 24.0.2 on top of
@@ -31,6 +33,38 @@
 version: "3.3"
 services:
 
+  lint-dockerfile:
+    container_name: ${COMPOSE_PROJECT_NAME}-lint-dockerfile
+    image: hadolint/hadolint:latest
+    volumes:
+      - .:/data
+    working_dir: /data
+    entrypoint: hadolint Dockerfile
+
+  lint-filenames:
+    container_name: ${COMPOSE_PROJECT_NAME}-lint-filenames
+    image: lslintorg/ls-lint:1.11.2
+    volumes:
+      - .:/data
+    working_dir: /data
+
+  lint-folders:
+    container_name: ${COMPOSE_PROJECT_NAME}-lint-folders
+    image: sommerfeldio/folderslint:latest
+    volumes:
+      - .:/data
+    working_dir: /data
+    command: folderslint
+
+  lint-yaml:
+    container_name: ${COMPOSE_PROJECT_NAME}-lint-yaml
+    image: cytopia/yamllint:latest
+    volumes:
+      - .:/data
+    working_dir: /data
+    command: .
+    tty: true
+
   source2adoc-website:
     container_name: ${COMPOSE_PROJECT_NAME}
     build: .
@@ -40,6 +74,11 @@ services:
       - /etc/localtime:/etc/localtime:ro
     ports:
       - 7880:7880
+    depends_on:
+      - lint-dockerfile
+      - lint-filenames
+      - lint-folders
+      - lint-yaml
     healthcheck:
       test: "wget --no-verbose --tries=1 --spider http://localhost:7880 || exit 1"
       interval: 10s
