@@ -193,7 +193,7 @@ jobs:
 
   # ----- Commit stage (build) ------------------
 
-  build-images:
+  build-image:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }}:${{ github.sha }}
     needs: [
@@ -262,20 +262,37 @@ jobs:
 
   # ----- Test stage ----------------------------
 
-  # todo ...
+  test-image:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.image-name }}
+    needs: ['build-image']
+    permissions:
+      contents: read
+    strategy: # see build-image (duplicated because github actions does not support anchors)
+      matrix:
+        include:
+          - registry: docker.io
+            image-name: source2adoc-website
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Dummy for ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ github.sha }}
+        run: |
+          echo "CHANGE ME"
+        shell: bash
 
   # ----- Deploy :rc stage ----------------------
 
   publish-rc:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }} as release candidate
-    needs: ['build-images']
+    needs: ['test-image']
     if: ${{ (github.actor != 'dependabot[bot]') && (github.ref == 'refs/heads/main') }}
-    permissions: # see build-images (duplicated because github actions does not support anchors)
+    permissions: # see build-image (duplicated because github actions does not support anchors)
       contents: read
       pull-requests: write
       security-events: write
-    strategy: # see build-images (duplicated because github actions does not support anchors)
+    strategy: # see build-image (duplicated because github actions does not support anchors)
       matrix:
         include:
           - registry: docker.io
@@ -307,6 +324,29 @@ jobs:
       #     exit-code: false
       #     write-comment: ${{ github.event_name == 'pull_request' }}
 
+  # ----- Cleanup -------------------------------
+
+  cleanup:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.image-name }}
+    needs: ['publish-rc']
+    # if: always()
+    permissions:
+      contents: read
+    strategy: # see build-image (duplicated because github actions does not support anchors)
+      matrix:
+        include:
+          - registry: docker.io
+            image-name: source2adoc-website
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Remove (:${{ github.sha }}) from ${{ matrix.registry }}
+        run: |
+          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${{ secrets.DOCKERHUB_USER }}'", "password": "'${{ secrets.DOCKERHUB_TOKEN }}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
+          curl -X DELETE -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}/tags/${{ github.sha }}/
+        shell: bash
+
   # ----- Notifications -------------------------
 
   # on-failure:
@@ -320,7 +360,10 @@ jobs:
   #     'lint-folders',
   #     'lint-filenames',
   #     'shellcheck',
-  #     'build-images',
+  #     'build-image',
+  #     'test-image',
+  #     'publish-rc',
+  #     'cleanup',
   #   ]
   #   if: failure()
   #   steps:
