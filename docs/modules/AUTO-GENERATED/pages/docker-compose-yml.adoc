@@ -21,6 +21,8 @@ the source2adoc-website in a Docker container to facilitate the local developmen
 | Run Chef InSpec tests against the website container
 |===
 
+Before starting the website image, the project is linted.
+
 === Prerequisites
 
 This compose config has been developed and tested with Docker version 24.0.2 on top of
