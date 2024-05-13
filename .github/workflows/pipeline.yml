@@ -324,12 +324,33 @@ jobs:
       #     exit-code: false
       #     write-comment: ${{ github.event_name == 'pull_request' }}
 
+  # ----- Test :rc stage -------------------------
+
+  test-rc:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.image-name }}
+    needs: ['build-image']
+    permissions:
+      contents: read
+    strategy: # see build-image (duplicated because github actions does not support anchors)
+      matrix:
+        include:
+          - registry: docker.io
+            image-name: source2adoc-website
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Dummy for ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_RC }}
+        run: |
+          echo "CHANGE ME"
+        shell: bash
+
   # ----- Cleanup -------------------------------
 
   cleanup:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }}
-    needs: ['publish-rc']
+    needs: ['test-rc']
     # if: always()
     permissions:
       contents: read
@@ -363,6 +384,7 @@ jobs:
   #     'build-image',
   #     'test-image',
   #     'publish-rc',
+  #     'test-rc',
   #     'cleanup',
   #   ]
   #   if: failure()
