@@ -329,7 +329,7 @@ jobs:
   test-rc:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }}
-    needs: ['build-image']
+    needs: ['publish-rc']
     permissions:
       contents: read
     strategy: # see build-image (duplicated because github actions does not support anchors)
