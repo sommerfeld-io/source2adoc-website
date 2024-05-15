@@ -347,6 +347,38 @@ jobs:
 
   # ----- Release -------------------------------
 
+  publish-html:
+    runs-on: ubuntu-latest
+    needs: ['test-rc']
+    if: ${{ (github.actor != 'dependabot[bot]') && (github.ref == 'refs/heads/main') }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4.0.2
+        with:
+          node-version: 22.1.0
+      - name: Install Antora
+        run: |
+          yarn global add @asciidoctor/core@~3.0.2
+          yarn global add asciidoctor-kroki@~0.18.1
+          yarn global add @antora/cli@3.1.7
+          yarn global add @antora/site-generator@3.1.7
+          yarn global add @antora/lunr-extension@~1.0.0-alpha.8
+          antora --version
+        shell: bash
+      - name: Build HTML pages
+        run: |
+          antora config/playbooks/source2adoc.yml --stacktrace --clean --fetch
+          ls -alF
+        shell: bash
+      - name: FTP upload
+        run: |
+          echo "..."
+        shell: bash
+
   publish-release:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }} as release
@@ -406,7 +438,10 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }}
-    needs: ['test-release']
+    needs: [
+      'test-release',
+      'publish-html',
+    ]
     # if: always()
     permissions:
       contents: read
@@ -442,6 +477,7 @@ jobs:
   #     'publish-rc',
   #     'test-rc',
   #     'publish-release',
+  #     'publish-html',
   #     'test-release',
   #     'cleanup',
   #   ]

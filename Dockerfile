@@ -23,7 +23,7 @@
 # recent release candidate from DockerHub.
 
 
-FROM node:22.1.0-alpine3.19 AS build-antora-site
+FROM node:22.1.0-alpine3.19 AS build
 LABEL maintainer="sebastian@sommerfeld.io"
 
 RUN yarn global add @asciidoctor/core@~3.0.2 \
@@ -52,6 +52,6 @@ RUN chown -hR "$USER:$USER" /usr/local/apache2 \
     && rm /usr/local/apache2/htdocs/index.html
 
 COPY config/httpd.conf /usr/local/apache2/conf/httpd.conf
-COPY --from=build-antora-site /tmp/antora/source2adoc-website/public /usr/local/apache2/htdocs
+COPY --from=build /tmp/antora/source2adoc-website/public /usr/local/apache2/htdocs
 
 USER "$USER"
