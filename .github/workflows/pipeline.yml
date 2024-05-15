@@ -413,7 +413,7 @@ jobs:
       'publish-release',
       'publish-html',
     ]
-    # if: always()
+    if: always()
     permissions:
       contents: read
     strategy: # see build-image (duplicated because github actions does not support anchors)
