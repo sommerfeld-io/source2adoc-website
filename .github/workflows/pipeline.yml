@@ -372,7 +372,7 @@ jobs:
       - name: Build HTML pages
         run: |
           antora config/playbooks/source2adoc.yml --stacktrace --clean --fetch
-          ls -alF
+          ls -alF /tmp/antora/source2adoc-website/public
         shell: bash
       - name: FTP upload
         run: |
