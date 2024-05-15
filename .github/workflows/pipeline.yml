@@ -324,7 +324,7 @@ jobs:
       #     exit-code: false
       #     write-comment: ${{ github.event_name == 'pull_request' }}
 
-  # ----- Test :rc stage -------------------------
+  # ----- Test :rc stage ------------------------
 
   test-rc:
     runs-on: ubuntu-latest
@@ -345,12 +345,67 @@ jobs:
           echo "CHANGE ME"
         shell: bash
 
+  # ----- Release -------------------------------
+
+  publish-release:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.image-name }} as release
+    needs: ['test-rc']
+    if: ${{ (github.actor != 'dependabot[bot]') && (github.ref == 'refs/heads/main') }}
+    permissions: # see build-image (duplicated because github actions does not support anchors)
+      contents: read
+      pull-requests: write
+      security-events: write
+    strategy: # see build-image (duplicated because github actions does not support anchors)
+      matrix:
+        include:
+          - registry: docker.io
+            image-name: source2adoc-website
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Login to Container Registry ${{ matrix.registry }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ matrix.registry }}
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Re-tag image as release (:${{ env.IMAGE_TAG_LATEST }}) and deploy to ${{ matrix.registry }}
+        run: |
+          SRC_IMAGE="${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_RC }}"
+          TARGET_IMAGE="${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_LATEST }}"
+          docker pull "$SRC_IMAGE"
+          docker tag "$SRC_IMAGE" "$TARGET_IMAGE"
+          docker push "$TARGET_IMAGE"
+        shell: bash
+
+  # ----- Test release --------------------------
+
+  test-release:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.image-name }}
+    needs: ['publish-release']
+    permissions:
+      contents: read
+    strategy: # see build-image (duplicated because github actions does not support anchors)
+      matrix:
+        include:
+          - registry: docker.io
+            image-name: source2adoc-website
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Dummy for ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_LATEST }}
+        run: |
+          echo "CHANGE ME"
+        shell: bash
+
   # ----- Cleanup -------------------------------
 
   cleanup:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }}
-    needs: ['test-rc']
+    needs: ['test-release']
     # if: always()
     permissions:
       contents: read
@@ -385,6 +440,8 @@ jobs:
   #     'test-image',
   #     'publish-rc',
   #     'test-rc',
+  #     'publish-release',
+  #     'test-release',
   #     'cleanup',
   #   ]
   #   if: failure()
