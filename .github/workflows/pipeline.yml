@@ -88,9 +88,8 @@ jobs:
 
   # ----- Commit stage (docs) -------------------
 
-  update-versions:
+  generate-docs:
     runs-on: ubuntu-latest
-    name: ${{ matrix.yml-file }}
     if: ${{ (github.actor != 'dependabot[bot]') }}
     needs: [
       'lint-yaml',
@@ -98,9 +97,6 @@ jobs:
       'lint-filenames',
       'shellcheck',
     ]
-    strategy:
-      matrix:
-        yml-file: ['docs/antora.yml']
     permissions:
       contents: write
     steps:
@@ -108,36 +104,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{github.ref}}
-      - name: Print Branchname
-        run: echo ${{github.ref}}
-        shell: bash
-      - name: Adjust version in ${{ matrix.yml-file }}
+      - name: Adjust version in docs/antora.yml
         uses: sebastian-sommerfeld-io/github-action-update-antora-yml@main
         with:
           git_ref: ${{github.ref}}
-          file: ${{ matrix.yml-file }}
-      - name: Run yamllint for ${{ matrix.yml-file }}
-        uses: ibiqlik/action-yamllint@v3
-        with:
-          file_or_dir: ${{ matrix.yml-file }}
-      - name: Commit and push
-        uses: EndBug/add-and-commit@v9
-        with:
-          author_name: sebastian
-          author_email: sebastian@sommerfeld.io
-          message: "[Actions Bot] update antora yml"
-
-  generate-docs:
-    runs-on: ubuntu-latest
-    if: ${{ (github.actor != 'dependabot[bot]') }}
-    needs: ['update-versions']
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{github.ref}}
+          file: docs/antora.yml
       - name: Generate docs from source code
         # TODO ... replace rather quickly !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         run: docker run --rm --volume "$(pwd):/project" --workdir "/project" sommerfeldio/source2docs:rc docs
@@ -458,35 +429,3 @@ jobs:
           TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${{ secrets.DOCKERHUB_USER }}'", "password": "'${{ secrets.DOCKERHUB_TOKEN }}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
           curl -X DELETE -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}/tags/${{ github.sha }}/
         shell: bash
-
-  # ----- Notifications -------------------------
-
-  # on-failure:
-  #   runs-on: ubuntu-latest
-  #   needs: [
-  #     'update-versions',
-  #     'generate-docs',
-  #     'copy-docs',
-  #     'sonarcloud',
-  #     'lint-yaml',
-  #     'lint-folders',
-  #     'lint-filenames',
-  #     'shellcheck',
-  #     'build-image',
-  #     'test-image',
-  #     'publish-rc',
-  #     'test-rc',
-  #     'publish-release',
-  #     'publish-html',
-  #     'test-release',
-  #     'cleanup',
-  #   ]
-  #   if: failure()
-  #   steps:
-  #     - name: Send Pipeline Status to Google Chat
-  #       if: always()
-  #       uses: Co-qn/google-chat-notification@releases/v1
-  #       with:
-  #         name: ${{ github.workflow }}
-  #         url: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
-  #         status: failure
