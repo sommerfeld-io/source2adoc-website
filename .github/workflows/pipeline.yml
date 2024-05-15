@@ -372,11 +372,21 @@ jobs:
       - name: Build HTML pages
         run: |
           antora config/playbooks/source2adoc.yml --stacktrace --clean --fetch
-          ls -alF /tmp/antora/source2adoc-website/public
         shell: bash
       - name: FTP upload
         run: |
-          echo "..."
+          # see config/playbooks/source2adoc.yml
+          readonly TARGET_DIR="/tmp/antora/source2adoc-website/public"
+
+          echo "Change dir to $TARGET_DIR"
+          cd "$TARGET_DIR" || exit
+          ls -alF
+
+          echo "[INFO] FTP upload"
+          docker run -i --rm \
+            --volume "$(pwd):$(pwd)" \
+            --workdir "$(pwd)" \
+            sommerfeldio/ftp-client:latest ncftpput -R -v -u "${{ secrets.FTP_PROD_USER }}" -p "${{ secrets.FTP_PROD_PASS }}" "${{ secrets.FTP_PROD_HOST }}" / *
         shell: bash
 
   publish-release:
