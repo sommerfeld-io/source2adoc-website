@@ -142,25 +142,6 @@ jobs:
         # TODO ... replace rather quickly !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         run: docker run --rm --volume "$(pwd):/project" --workdir "/project" sommerfeldio/source2docs:rc docs
         shell: bash
-      - name: Commit and push
-        uses: EndBug/add-and-commit@v9.1.4
-        with:
-          author_name: sebastian
-          author_email: sebastian@sommerfeld.io
-          message: "[Actions Bot] generate source code docs"
-          tag_push: --force
-
-  copy-docs:
-    runs-on: ubuntu-latest
-    if: ${{ (github.actor != 'dependabot[bot]') }}
-    needs: ['update-versions']
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{github.ref}}
       - name: Copy Adoc files to project root
         run: |
           cp docs/modules/ROOT/pages/index.adoc README.adoc
@@ -197,7 +178,7 @@ jobs:
         with:
           author_name: sebastian
           author_email: sebastian@sommerfeld.io
-          message: "[Actions Bot] copy docs to project root"
+          message: "[Actions Bot] generate docs"
           tag_push: --force
 
   # ----- Commit stage (build) ------------------
@@ -205,10 +186,7 @@ jobs:
   build-image:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }}:${{ github.sha }}
-    needs: [
-      'generate-docs',
-      'copy-docs'
-    ]
+    needs: ['generate-docs']
     permissions:
       contents: read
       pull-requests: write
