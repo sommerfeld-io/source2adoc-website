@@ -30,6 +30,8 @@ on:
   pull_request:
     branches-ignore:
       - dependabot/**
+  schedule:
+    - cron: '0 1 * * 2'
 
 env:
   IMAGE_TAG_RC: rc
