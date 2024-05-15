@@ -314,15 +314,14 @@ jobs:
           docker tag "$SRC_IMAGE" "$TARGET_IMAGE"
           docker push "$TARGET_IMAGE"
         shell: bash
-      # todo ... implement as soon as there is a latest tag on dockerhub
-      # - name: Docker Scout Compare :${{ env.IMAGE_TAG_RC }}" to :${{ env.IMAGE_TAG_LATEST }}
-      #   uses: docker/scout-action@v1.8.0
-      #   with:
-      #     command: compare
-      #     image: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_RC }}
-      #     to: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_LATEST }}
-      #     exit-code: false
-      #     write-comment: ${{ github.event_name == 'pull_request' }}
+      - name: Docker Scout Compare :${{ env.IMAGE_TAG_RC }}" to :${{ env.IMAGE_TAG_LATEST }}
+        uses: docker/scout-action@v1.8.0
+        with:
+          command: compare
+          image: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_RC }}
+          to: ${{ matrix.registry }}/${{ secrets.DOCKERHUB_USER }}/${{ matrix.image-name }}:${{ env.IMAGE_TAG_LATEST }}
+          exit-code: false
+          write-comment: ${{ github.event_name == 'pull_request' }}
 
   # ----- Test :rc stage ------------------------
 
@@ -330,6 +329,7 @@ jobs:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }}
     needs: ['publish-rc']
+    if: ${{ (github.actor != 'dependabot[bot]') && (github.ref == 'refs/heads/main') }}
     permissions:
       contents: read
     strategy: # see build-image (duplicated because github actions does not support anchors)
@@ -385,6 +385,7 @@ jobs:
     runs-on: ubuntu-latest
     name: ${{ matrix.image-name }}
     needs: ['publish-release']
+    if: ${{ (github.actor != 'dependabot[bot]') && (github.ref == 'refs/heads/main') }}
     permissions:
       contents: read
     strategy: # see build-image (duplicated because github actions does not support anchors)
