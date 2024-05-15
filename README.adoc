@@ -30,4 +30,3 @@ Feel free to contact me via sebastian@sommerfeld.io.
 // |        Contents are based on Antora docs.         |
 // |                                                   |
 // +---------------------------------------------------+
-// copied from docs/modules/ROOT/pages/index.adoc
