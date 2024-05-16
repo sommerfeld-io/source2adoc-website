@@ -6,8 +6,9 @@ site:
   robots: allow
 
 content:
-  branches: ['*', '!dependabot/*']
-  # tags: [v*]
+  # branches: ['*', '!dependabot/*']
+  branches: ['main']
+  tags: [v*]
   sources:
     - url: https://github.com/sommerfeld-io/source2adoc.git
       start_path: docs
