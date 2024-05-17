@@ -2,7 +2,7 @@
 site:
   title: source2adoc
   url: /
-  start_page: source2adoc::index.adoc
+  start_page: public::index.adoc
   robots: allow
 
 content:
