@@ -31,7 +31,7 @@ COPY config /antora
 WORKDIR /antora
 
 RUN antora --version \
-    && antora playbooks/source2adoc.yml --stacktrace --clean --fetch
+    && antora playbooks/public.yml --stacktrace --clean --fetch
 
 # sleep for a moment ... otherwise the search-index.js is not built correctly
 RUN sleep 5

@@ -335,11 +335,11 @@ jobs:
         shell: bash
       - name: Build HTML pages
         run: |
-          antora config/playbooks/source2adoc.yml --stacktrace --clean --fetch
+          antora config/playbooks/public.yml --stacktrace --clean --fetch
         shell: bash
       - name: FTP upload
         run: |
-          # see config/playbooks/source2adoc.yml
+          # see config/playbooks/public.yml
           readonly TARGET_DIR="/tmp/antora/source2adoc-website/public"
 
           echo "Change dir to $TARGET_DIR"
